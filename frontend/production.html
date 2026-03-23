@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Production — Bricks Management</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+<aside id="sidebar">
+  <div class="brand"><div class="brand-icon">🧱</div><h1>Bricks Mgmt</h1><span>Factory System</span></div>
+  <div class="nav-section">Main</div>
+  <nav>
+    <a href="index.html"><span class="ico">📊</span><span>Dashboard</span></a>
+    <a href="production.html"><span class="ico">🏭</span><span>Production</span></a>
+    <a href="sales.html"><span class="ico">🛒</span><span>Sales &amp; Payments</span></a>
+    <a href="reports.html"><span class="ico">📈</span><span>Reports</span></a>
+  </nav>
+  <div class="sidebar-footer"><span class="status-dot"></span><span>DB Connected</span></div>
+</aside>
+<main id="main">
+  <div class="topbar">
+    <div class="topbar-title">Production</div>
+    <div class="topbar-right"><span class="topbar-date" id="topbar-date"></span><span class="topbar-badge">v1.0.0</span></div>
+  </div>
+  <div class="content">
+    <div class="page-header"><h2>Add Production Batch</h2><p>Record daily brick production with all costs</p><div class="divider"></div></div>
+    <div class="form-panel">
+      <h3>Batch Details</h3>
+      <div class="subtitle">Fill in all fields to record a production batch</div>
+      <div class="form-grid">
+        <div class="field"><label>Production Date *</label><input type="date" id="prod-date"/></div>
+        <div class="field"><label>Total Bricks *</label><input type="number" id="total-bricks" placeholder="e.g. 2000" oninput="calc()"/></div>
+        <div class="field"><label>Breakage</label><input type="number" id="breakage" placeholder="e.g. 50" oninput="calc()"/></div>
+        <div class="field"><label>Good Bricks (auto)</label><input type="number" id="good-bricks" readonly/></div>
+        <div class="section-label">Raw Material Costs (₹)</div>
+        <div class="field"><label>Fly Ash Cost *</label><input type="number" id="flyash" placeholder="₹ 0.00" oninput="calc()"/></div>
+        <div class="field"><label>Cement Cost *</label><input type="number" id="cement" placeholder="₹ 0.00" oninput="calc()"/></div>
+        <div class="field"><label>Gypsum Cost *</label><input type="number" id="gypsum" placeholder="₹ 0.00" oninput="calc()"/></div>
+        <div class="field"><label>Chips Cost</label><input type="number" id="chips" placeholder="₹ 0.00" oninput="calc()"/></div>
+        <div class="field"><label>Labour Cost *</label><input type="number" id="labour" placeholder="₹ 0.00" oninput="calc()"/></div>
+        <div class="field"><label>Other Costs</label><input type="number" id="other" placeholder="₹ 0.00" oninput="calc()"/></div>
+        <div class="section-label">Calculated Summary</div>
+        <div class="field"><label>Total Production Cost (₹)</label><input type="number" id="total-cost" readonly style="color:var(--accent)"/></div>
+        <div class="field"><label>Cost per Brick (₹)</label><input type="number" id="cost-per-brick" readonly style="color:var(--info)"/></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="saveBatch()">🏭 Save Production Batch</button>
+        <button class="btn btn-ghost" onclick="resetForm()">↺ Reset</button>
+      </div>
+    </div>
+  </div>
+</main>
+<div id="toast"><span>Action successful</span></div>
+<script src="common.js"></script>
+<script>
+document.getElementById('prod-date').value = new Date().toISOString().split('T')[0];
+
+function calc() {
+  const total    = +document.getElementById('total-bricks').value || 0;
+  const breakage = +document.getElementById('breakage').value || 0;
+  const good     = Math.max(0, total - breakage);
+  const flyash   = +document.getElementById('flyash').value || 0;
+  const cement   = +document.getElementById('cement').value || 0;
+  const gypsum   = +document.getElementById('gypsum').value || 0;
+  const chips    = +document.getElementById('chips').value || 0;
+  const labour   = +document.getElementById('labour').value || 0;
+  const other    = +document.getElementById('other').value || 0;
+  const totalCost = flyash + cement + gypsum + chips + labour + other;
+  document.getElementById('good-bricks').value    = good || '';
+  document.getElementById('total-cost').value     = totalCost || '';
+  document.getElementById('cost-per-brick').value = good > 0 ? (totalCost / good).toFixed(2) : '';
+}
+
+async function saveBatch() {
+  const date   = document.getElementById('prod-date').value;
+  const total  = document.getElementById('total-bricks').value;
+  const flyash = document.getElementById('flyash').value;
+  const cement = document.getElementById('cement').value;
+  if (!date || !total || !flyash || !cement) { toast('Fill required fields', 'error'); return; }
+
+  const params = new URLSearchParams({
+    date, totalBricks: total,
+    breakage: document.getElementById('breakage').value || 0,
+    flyash, cement,
+    gypsum:  document.getElementById('gypsum').value  || 0,
+    chips:   document.getElementById('chips').value   || 0,
+    labour:  document.getElementById('labour').value  || 0,
+    other:   document.getElementById('other').value   || 0
+  });
+
+  try {
+    const d = await fetch(APP + '/api/production', {method:'POST', body:params}).then(r => r.json());
+    if (d.success) {
+      toast('Batch saved! Good Bricks: ' + d.goodBricks + ', Cost/Brick: ₹' + d.costPerBrick);
+      resetForm();
+    } else {
+      toast(d.message || 'Error saving batch', 'error');
+    }
+  } catch(e) { toast('Server error', 'error'); }
+}
+
+function resetForm() {
+  ['total-bricks','breakage','good-bricks','flyash','cement','gypsum','chips','labour','other','total-cost','cost-per-brick']
+    .forEach(id => document.getElementById(id).value = '');
+}
+</script>
+</body>
+</html>

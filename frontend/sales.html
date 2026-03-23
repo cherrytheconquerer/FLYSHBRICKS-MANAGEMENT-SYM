@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sales &amp; Payments — Bricks Management</title>
+  <link rel="stylesheet" href="style.css"/>
+  <style>
+    .tab-bar{display:flex;gap:4px;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:5px;margin-bottom:28px;width:fit-content;}
+    .tab-bar button{font-family:var(--fw);font-size:14px;font-weight:600;padding:8px 20px;border:none;border-radius:7px;cursor:pointer;background:transparent;color:var(--muted);transition:all .18s;}
+    .tab-bar button.active{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;}
+    .tab-bar button:hover:not(.active){color:var(--text);background:var(--card);}
+    .tab-panel{display:none;} .tab-panel.active{display:block;}
+
+    /* Customer type toggle */
+    .cust-type-bar{display:flex;gap:0;margin-bottom:20px;border-radius:8px;overflow:hidden;border:1px solid var(--border);}
+    .cust-type-bar button{flex:1;padding:10px;border:none;font-family:var(--fw);font-size:14px;font-weight:600;cursor:pointer;background:var(--bg);color:var(--muted);transition:.15s;}
+    .cust-type-bar button.active{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;}
+    .cust-type-bar button:first-child{border-right:1px solid var(--border);}
+
+    /* Existing customer dropdown */
+    .cust-dropdown{background:var(--bg);border:1px solid var(--border);border-radius:8px;max-height:220px;overflow-y:auto;margin-top:8px;display:none;}
+    .cust-dropdown-item{padding:12px 16px;cursor:pointer;border-bottom:1px solid var(--border);transition:.12s;display:flex;justify-content:space-between;align-items:center;}
+    .cust-dropdown-item:last-child{border-bottom:none;}
+    .cust-dropdown-item:hover{background:var(--card);}
+    .cust-dropdown-item .cust-dname{font-weight:600;font-size:14px;}
+    .cust-dropdown-item .cust-dphone{font-size:12px;color:var(--muted);}
+    .selected-cust{background:var(--card);border:1px solid var(--accent);border-radius:8px;padding:12px 16px;margin-top:8px;display:none;align-items:center;justify-content:space-between;}
+    .selected-cust span{font-weight:600;color:var(--accent);}
+    .search-box{padding:10px 14px;border:none;border-bottom:1px solid var(--border);width:100%;background:var(--bg);color:var(--text);font-size:14px;font-family:var(--fw);outline:none;}
+  </style>
+</head>
+<body>
+<aside id="sidebar">
+  <div class="brand"><div class="brand-icon">🧱</div><h1>Bricks Mgmt</h1><span>Factory System</span></div>
+  <div class="nav-section">Main</div>
+  <nav>
+    <a href="index.html"><span class="ico">📊</span><span>Dashboard</span></a>
+    <a href="production.html"><span class="ico">🏭</span><span>Production</span></a>
+    <a href="sales.html"><span class="ico">🛒</span><span>Sales &amp; Payments</span></a>
+    <a href="reports.html"><span class="ico">📈</span><span>Reports</span></a>
+  </nav>
+  <div class="sidebar-footer"><span class="status-dot"></span><span>DB Connected</span></div>
+</aside>
+<main id="main">
+  <div class="topbar">
+    <div class="topbar-title">Sales &amp; Payments</div>
+    <div class="topbar-right"><span class="topbar-date" id="topbar-date"></span><span class="topbar-badge">v1.0.0</span></div>
+  </div>
+  <div class="content">
+    <div class="page-header"><h2>Sales &amp; Payments</h2><p>Record sales, clear dues, and view customer statements</p><div class="divider"></div></div>
+
+    <div class="tab-bar">
+      <button class="active" onclick="switchTab('record-sale',this)">🛒 Record Sale</button>
+      <button onclick="switchTab('update-payment',this)">💳 Update Payment</button>
+      <button onclick="switchTab('customer-stmt',this)">👤 Customer Statement</button>
+    </div>
+
+    <!-- ══ TAB: Record Sale ══ -->
+    <div class="tab-panel active" id="tab-record-sale">
+      <div class="two-col">
+        <div class="form-panel">
+          <h3>Customer &amp; Sale Details</h3>
+          <div class="subtitle">Fill in all required fields to record the sale</div>
+
+          <!-- Customer Type Toggle -->
+          <div class="section-label" style="margin-bottom:10px">Customer Type</div>
+          <div class="cust-type-bar">
+            <button class="active" id="btn-new-cust" onclick="setCustType('new')">👤 New Customer</button>
+            <button id="btn-existing-cust" onclick="setCustType('existing')">🔍 Existing Customer</button>
+          </div>
+
+          <!-- New Customer Fields -->
+          <div id="new-cust-fields">
+            <div class="form-grid" style="margin-bottom:0">
+              <div class="field span2"><label>Customer Name *</label><input type="text" id="cust-name" placeholder="Full name"/></div>
+              <div class="field span2"><label>Phone Number *</label><input type="text" id="cust-phone" placeholder="10-digit mobile"/></div>
+            </div>
+          </div>
+
+          <!-- Existing Customer Fields -->
+          <div id="existing-cust-fields" style="display:none">
+            <label style="font-size:13px;color:var(--muted);font-weight:500">Search Customer</label>
+            <div class="cust-dropdown" id="cust-dropdown" style="display:block">
+              <input type="text" class="search-box" id="cust-search" placeholder="Type name to search..." oninput="filterCustomers()"/>
+              <div id="cust-list-items"><p style="padding:12px 16px;color:var(--muted)">Loading customers...</p></div>
+            </div>
+            <div class="selected-cust" id="selected-cust-display">
+              <div>
+                <div style="font-weight:600" id="sel-cust-name">—</div>
+                <div style="font-size:12px;color:var(--muted)" id="sel-cust-phone">—</div>
+              </div>
+              <span>✓ Selected</span>
+            </div>
+          </div>
+
+          <hr class="section-divider" style="margin:20px 0"/>
+          <div class="section-label" style="margin-bottom:10px">Sale Details</div>
+
+          <div class="form-grid">
+            <div class="field"><label>Quantity (bricks) *</label><input type="number" id="sale-qty" placeholder="e.g. 500" oninput="calcSale()"/></div>
+            <div class="field"><label>Price per Brick (₹) *</label><input type="number" id="sale-price" step="0.01" placeholder="e.g. 7.50" oninput="calcSale()"/></div>
+            <div class="field"><label>Total Amount (₹)</label><input type="number" id="sale-total" readonly style="color:var(--success)"/></div>
+            <div class="field"><label>Paid Amount (₹) *</label><input type="number" id="sale-paid" placeholder="₹ 0.00" oninput="calcSale()"/></div>
+            <div class="field span2"><label>Remaining Balance (₹)</label><input type="number" id="sale-balance" readonly style="color:var(--accent)"/></div>
+            <div class="field span2"><label>Sale Date *</label><input type="date" id="sale-date"/></div>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-primary" onclick="submitSale()">🛒 Record Sale</button>
+            <button class="btn btn-ghost" onclick="resetSale()">↺ Reset</button>
+          </div>
+        </div>
+
+        <div>
+          <div class="table-panel">
+            <div class="table-header"><h3>Pending Sales</h3><span class="count" id="pending-count">loading...</span></div>
+            <table>
+              <thead><tr><th>ID</th><th>Customer</th><th>Qty</th><th>Balance</th><th>Date</th></tr></thead>
+              <tbody id="pending-body"><tr><td colspan="5" style="text-align:center;color:var(--muted)">Loading...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ TAB: Update Payment ══ -->
+    <div class="tab-panel" id="tab-update-payment">
+      <div class="table-panel" style="margin-bottom:24px">
+        <div class="table-header"><h3>Pending Payments</h3><span class="count" id="pay-count">loading...</span></div>
+        <table>
+          <thead><tr><th>Sale ID</th><th>Customer</th><th>Qty</th><th>Total</th><th>Paid</th><th>Balance</th><th>Date</th><th>Action</th></tr></thead>
+          <tbody id="pay-body"><tr><td colspan="8" style="text-align:center;color:var(--muted)">Loading...</td></tr></tbody>
+        </table>
+      </div>
+      <div class="form-panel" id="pay-form" style="display:none;max-width:420px">
+        <h3>Record Payment</h3>
+        <div class="subtitle" id="pay-subtitle">Select a sale above</div>
+        <div class="form-grid full">
+          <div class="field"><label>Sale ID</label><input type="text" id="pay-sale-id" readonly style="background:var(--bg)"/></div>
+          <div class="field"><label>Customer</label><input type="text" id="pay-customer" readonly style="background:var(--bg)"/></div>
+          <div class="field"><label>Outstanding Balance (₹)</label><input type="number" id="pay-balance" readonly style="background:var(--bg);color:var(--danger)"/></div>
+          <div class="field"><label>Payment Amount (₹) *</label><input type="number" id="pay-amount" placeholder="Enter amount"/></div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-success" onclick="processPayment()">✓ Confirm Payment</button>
+          <button class="btn btn-ghost" onclick="document.getElementById('pay-form').style.display='none'">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ TAB: Customer Statement ══ -->
+    <div class="tab-panel" id="tab-customer-stmt">
+      <div style="display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap">
+        <div style="min-width:220px;width:220px">
+          <h3 style="margin-bottom:8px;font-size:15px">All Customers</h3>
+          <p style="color:var(--muted);font-size:13px;margin-bottom:12px">Click to view statement</p>
+          <div id="cust-list"><p style="color:var(--muted)">Loading...</p></div>
+        </div>
+        <div style="flex:1;min-width:300px">
+          <div style="display:flex;gap:10px;margin-bottom:16px;align-items:flex-end;flex-wrap:wrap">
+            <div class="field" style="flex:1"><label>Search by Name</label><input type="text" id="stmt-search" placeholder="Type customer name"/></div>
+            <button class="btn btn-primary" onclick="searchStmt()">Search</button>
+            <button class="btn btn-ghost" onclick="window.print()">Print</button>
+          </div>
+          <div id="stmt-result" style="display:none">
+            <div style="display:flex;gap:14px;margin-bottom:20px;flex-wrap:wrap">
+              <div class="stat-card orange" style="flex:1;min-width:120px;padding:14px"><div class="stat-label">Customer</div><div class="stat-value" style="font-size:18px" id="stmt-name">—</div></div>
+              <div class="stat-card green"  style="flex:1;min-width:120px;padding:14px"><div class="stat-label">Total Billed</div><div class="stat-value" style="font-size:18px" id="stmt-total">—</div></div>
+              <div class="stat-card blue"   style="flex:1;min-width:120px;padding:14px"><div class="stat-label">Total Paid</div><div class="stat-value" style="font-size:18px" id="stmt-paid">—</div></div>
+              <div class="stat-card red"    style="flex:1;min-width:120px;padding:14px"><div class="stat-label">Outstanding</div><div class="stat-value" style="font-size:18px" id="stmt-balance">—</div></div>
+            </div>
+            <div class="table-panel">
+              <div class="table-header"><h3>Transactions</h3><span class="count" id="stmt-count">0</span></div>
+              <table>
+                <thead><tr><th>ID</th><th>Date</th><th>Qty</th><th>Price</th><th>Total</th><th>Paid</th><th>Balance</th></tr></thead>
+                <tbody id="stmt-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+<div id="toast"><span>Action successful</span></div>
+<script src="common.js"></script>
+<script>
+document.getElementById('sale-date').value = new Date().toISOString().split('T')[0];
+
+let custType = 'new';
+let selectedCustId = null;
+let selectedCustName = '';
+let selectedCustPhone = '';
+let allCustomers = [];
+
+// ── Customer Type Toggle ─────────────────────────────
+function setCustType(type) {
+  custType = type;
+  document.getElementById('btn-new-cust').classList.toggle('active', type === 'new');
+  document.getElementById('btn-existing-cust').classList.toggle('active', type === 'existing');
+  document.getElementById('new-cust-fields').style.display      = type === 'new'      ? 'block' : 'none';
+  document.getElementById('existing-cust-fields').style.display = type === 'existing' ? 'block' : 'none';
+  selectedCustId = null;
+}
+
+// ── Load and filter existing customers ──────────────
+async function loadAllCustomers() {
+  try {
+    allCustomers = await fetch(APP + '/api/customers').then(r => r.json());
+    renderCustomerList(allCustomers);
+  } catch(e) { console.error(e); }
+}
+
+function filterCustomers() {
+  const q = document.getElementById('cust-search').value.toLowerCase();
+  const filtered = allCustomers.filter(c => c.name.toLowerCase().includes(q) || c.phone.includes(q));
+  renderCustomerList(filtered);
+}
+
+function renderCustomerList(list) {
+  document.getElementById('cust-list-items').innerHTML = list.length === 0
+    ? '<p style="padding:12px 16px;color:var(--muted)">No customers found</p>'
+    : list.map(c => `
+      <div class="cust-dropdown-item" onclick="selectExistingCust(${c.id},'${c.name.replace(/'/g,"\\'")}','${c.phone}')">
+        <div>
+          <div class="cust-dname">${c.name}</div>
+          <div class="cust-dphone">${c.phone}</div>
+        </div>
+        <span style="color:var(--muted);font-size:18px">›</span>
+      </div>`).join('');
+}
+
+function selectExistingCust(id, name, phone) {
+  selectedCustId    = id;
+  selectedCustName  = name;
+  selectedCustPhone = phone;
+  document.getElementById('sel-cust-name').textContent  = name;
+  document.getElementById('sel-cust-phone').textContent = phone;
+  document.getElementById('cust-dropdown').style.display       = 'none';
+  document.getElementById('selected-cust-display').style.display = 'flex';
+}
+
+// ── Tab switching ─────────────────────────────────────
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-bar button').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ── Sale Calculation ─────────────────────────────────
+function calcSale() {
+  const qty   = +document.getElementById('sale-qty').value   || 0;
+  const price = +document.getElementById('sale-price').value || 0;
+  const paid  = +document.getElementById('sale-paid').value  || 0;
+  const total = qty * price;
+  document.getElementById('sale-total').value   = total || '';
+  document.getElementById('sale-balance').value = Math.max(0, total - paid) || '';
+}
+
+// ── Submit Sale ───────────────────────────────────────
+async function submitSale() {
+  const qty   = document.getElementById('sale-qty').value;
+  const price = document.getElementById('sale-price').value;
+  const paid  = document.getElementById('sale-paid').value || '0';
+  const date  = document.getElementById('sale-date').value;
+
+  let custName, custPhone;
+
+  if (custType === 'new') {
+    custName  = document.getElementById('cust-name').value.trim();
+    custPhone = document.getElementById('cust-phone').value.trim();
+    if (!custName || !custPhone) { toast('Enter customer name and phone', 'error'); return; }
+  } else {
+    if (!selectedCustId) { toast('Please select an existing customer', 'error'); return; }
+    custName  = selectedCustName;
+    custPhone = selectedCustPhone;
+  }
+
+  if (!qty || !price || !date) { toast('Fill all sale details', 'error'); return; }
+
+  try {
+    const d = await fetch(APP + '/api/sale', {
+      method: 'POST',
+      body: new URLSearchParams({ custName, custPhone, qty, price, paid, date })
+    }).then(r => r.json());
+
+    if (d.success) {
+      toast(d.message);
+      resetSale();
+      loadPending();
+      loadAllCustomers();
+    } else {
+      toast(d.message, 'error');
+    }
+  } catch(e) { toast('Server error', 'error'); }
+}
+
+function resetSale() {
+  ['cust-name','cust-phone','sale-qty','sale-price','sale-total','sale-paid','sale-balance']
+    .forEach(id => document.getElementById(id).value = '');
+  document.getElementById('cust-search').value = '';
+  selectedCustId = null;
+  document.getElementById('selected-cust-display').style.display = 'none';
+  document.getElementById('cust-dropdown').style.display = 'block';
+  renderCustomerList(allCustomers);
+  setCustType('new');
+}
+
+// ── Load Pending ─────────────────────────────────────
+async function loadPending() {
+  try {
+    const data = await fetch(APP + '/api/pending').then(r => r.json());
+    document.getElementById('pending-count').textContent = data.length + ' pending';
+    document.getElementById('pay-count').textContent     = data.length + ' pending';
+
+    document.getElementById('pending-body').innerHTML = data.length === 0
+      ? '<tr><td colspan="5" style="text-align:center;color:var(--muted)">No pending sales</td></tr>'
+      : data.map(r => `<tr>
+          <td class="mono">#${r.id}</td><td>${r.customer}</td>
+          <td class="mono">${r.qty}</td>
+          <td class="mono" style="color:var(--danger)">₹${r.balance.toLocaleString('en-IN')}</td>
+          <td class="mono">${r.date}</td>
+        </tr>`).join('');
+
+    document.getElementById('pay-body').innerHTML = data.length === 0
+      ? '<tr><td colspan="8" style="text-align:center;color:var(--muted)">No pending payments</td></tr>'
+      : data.map(r => `<tr>
+          <td class="mono">#${r.id}</td><td>${r.customer}</td>
+          <td class="mono">${r.qty}</td>
+          <td class="mono">₹${r.total.toLocaleString('en-IN')}</td>
+          <td class="mono">₹${r.paid.toLocaleString('en-IN')}</td>
+          <td class="mono" style="color:var(--danger)">₹${r.balance.toLocaleString('en-IN')}</td>
+          <td class="mono">${r.date}</td>
+          <td><button class="btn btn-sm btn-primary" onclick="selectPayment(${r.id},'${r.customer}',${r.balance})">Pay Now</button></td>
+        </tr>`).join('');
+  } catch(e) { console.error(e); }
+}
+
+// ── Payment ───────────────────────────────────────────
+function selectPayment(id, name, balance) {
+  document.getElementById('pay-sale-id').value  = id;
+  document.getElementById('pay-customer').value = name;
+  document.getElementById('pay-balance').value  = balance;
+  document.getElementById('pay-amount').value   = '';
+  document.getElementById('pay-subtitle').textContent = 'Updating balance for ' + name;
+  document.getElementById('pay-form').style.display = 'block';
+  document.getElementById('pay-form').scrollIntoView({behavior:'smooth'});
+}
+
+async function processPayment() {
+  const saleId = document.getElementById('pay-sale-id').value;
+  const amount = document.getElementById('pay-amount').value;
+  const bal    = +document.getElementById('pay-balance').value;
+  if (!amount || +amount <= 0) { toast('Enter valid amount', 'error'); return; }
+  if (+amount > bal)            { toast('Exceeds outstanding balance', 'error'); return; }
+  try {
+    const d = await fetch(APP + '/api/payment', {
+      method: 'POST',
+      body: new URLSearchParams({ saleId, amount })
+    }).then(r => r.json());
+    if (d.success) { toast(d.message); document.getElementById('pay-form').style.display='none'; loadPending(); }
+    else toast(d.message, 'error');
+  } catch(e) { toast('Server error', 'error'); }
+}
+
+// ── Customer Statement ────────────────────────────────
+async function loadCustomers() {
+  try {
+    const data = await fetch(APP + '/api/customers').then(r => r.json());
+    document.getElementById('cust-list').innerHTML = data.length === 0
+      ? '<p style="color:var(--muted)">No customers yet</p>'
+      : data.map(c => `
+        <div class="cust-card" onclick="loadStatement(${c.id})">
+          <div><div style="font-weight:600">${c.name}</div><div style="font-size:12px;color:var(--muted)">${c.phone}</div></div>
+          <span style="color:var(--accent)">›</span>
+        </div>`).join('');
+  } catch(e) { console.error(e); }
+}
+
+async function searchStmt() {
+  const name = document.getElementById('stmt-search').value.trim();
+  if (!name) { toast('Enter a customer name', 'error'); return; }
+  try {
+    const data  = await fetch(APP + '/api/customers').then(r => r.json());
+    const found = data.find(c => c.name.toLowerCase().includes(name.toLowerCase()));
+    if (!found) { toast('Customer not found', 'error'); return; }
+    loadStatement(found.id);
+  } catch(e) { toast('Error', 'error'); }
+}
+
+async function loadStatement(custId) {
+  try {
+    const d = await fetch(APP + '/api/statement?id=' + custId).then(r => r.json());
+    if (d.error) { toast(d.error, 'error'); return; }
+    document.getElementById('stmt-name').textContent    = d.name;
+    document.getElementById('stmt-total').textContent   = '₹' + d.total.toLocaleString('en-IN');
+    document.getElementById('stmt-paid').textContent    = '₹' + d.paid.toLocaleString('en-IN');
+    document.getElementById('stmt-balance').textContent = '₹' + d.balance.toLocaleString('en-IN');
+    document.getElementById('stmt-count').textContent   = d.txns.length + ' records';
+    document.getElementById('stmt-tbody').innerHTML     = d.txns.map(t => `<tr>
+      <td class="mono">#${t.id}</td><td class="mono">${t.date}</td>
+      <td class="mono">${t.qty}</td><td class="mono">₹${t.price.toFixed(2)}</td>
+      <td class="mono">₹${t.total.toLocaleString('en-IN')}</td>
+      <td class="mono">₹${t.paid.toLocaleString('en-IN')}</td>
+      <td class="mono" style="color:${t.balance>0?'var(--danger)':'var(--success)'}">₹${t.balance.toLocaleString('en-IN')}</td>
+    </tr>`).join('');
+    document.getElementById('stmt-result').style.display = 'block';
+  } catch(e) { toast('Error loading statement', 'error'); }
+}
+
+// Init
+loadPending();
+loadCustomers();
+loadAllCustomers();
+</script>
+</body>
+</html>

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard — Bricks Management</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+<aside id="sidebar">
+  <div class="brand">
+    <div class="brand-icon">🧱</div>
+    <h1>Bricks Mgmt</h1>
+    <span>Factory System</span>
+  </div>
+  <div class="nav-section">Main</div>
+  <nav>
+    <a href="index.html"><span class="ico">📊</span><span>Dashboard</span></a>
+    <a href="production.html"><span class="ico">🏭</span><span>Production</span></a>
+    <a href="sales.html"><span class="ico">🛒</span><span>Sales &amp; Payments</span></a>
+    <a href="reports.html"><span class="ico">📈</span><span>Reports</span></a>
+  </nav>
+  <div class="sidebar-footer"><span class="status-dot"></span><span>DB Connected</span></div>
+</aside>
+<main id="main">
+  <div class="topbar">
+    <div class="topbar-title">Dashboard</div>
+    <div class="topbar-right">
+      <span class="topbar-date" id="topbar-date"></span>
+      <span class="topbar-badge">v1.0.0</span>
+    </div>
+  </div>
+  <div class="content">
+    <div class="page-header">
+      <h2>Factory Dashboard</h2>
+      <p>Real-time overview of production, sales and inventory</p>
+      <div class="divider"></div>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-card orange">
+        <div class="stat-label">Total Stock</div>
+        <div class="stat-value" id="dash-stock">...</div>
+        <div class="stat-unit">bricks available</div>
+        <div class="stat-icon">🧱</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-label">Total Revenue</div>
+        <div class="stat-value" id="dash-revenue">...</div>
+        <div class="stat-unit">lifetime sales</div>
+        <div class="stat-icon">💰</div>
+      </div>
+      <div class="stat-card blue">
+        <div class="stat-label">Total Profit</div>
+        <div class="stat-value" id="dash-profit">...</div>
+        <div class="stat-unit">after costs</div>
+        <div class="stat-icon">📈</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-label">Pending Balance</div>
+        <div class="stat-value" id="dash-pending">...</div>
+        <div class="stat-unit">outstanding dues</div>
+        <div class="stat-icon">⏳</div>
+      </div>
+    </div>
+    <div class="alert-strip" id="dash-alert" style="display:none">
+      <span>⚠️</span>
+      <strong>Low Stock Alert:</strong>&nbsp;<span id="dash-alert-msg"></span>
+    </div>
+    <div class="table-panel">
+      <div class="table-header">
+        <h3>Recent Transactions</h3>
+        <span class="count" id="dash-count">loading...</span>
+      </div>
+      <table>
+        <thead>
+          <tr><th>ID</th><th>Customer</th><th>Qty</th><th>Price</th><th>Total</th><th>Paid</th><th>Balance</th><th>Date</th><th>Status</th></tr>
+        </thead>
+        <tbody id="dash-tbody">
+          <tr><td colspan="9" style="text-align:center;color:var(--muted)">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+<div id="toast"><span>Action successful</span></div>
+<script src="common.js"></script>
+<script>
+async function loadDashboard() {
+  try {
+    const d = await fetch(APP + '/api/dashboard').then(r => r.json());
+    document.getElementById('dash-stock').textContent   = d.stock.toLocaleString('en-IN');
+    document.getElementById('dash-revenue').textContent = '₹' + d.revenue.toLocaleString('en-IN');
+    document.getElementById('dash-profit').textContent  = '₹' + d.profit.toLocaleString('en-IN');
+    document.getElementById('dash-pending').textContent = '₹' + d.pending.toLocaleString('en-IN');
+    if (d.stock < 1000) {
+      document.getElementById('dash-alert').style.display = 'flex';
+      document.getElementById('dash-alert-msg').textContent = 'Stock (' + d.stock + ') is low. Schedule production soon.';
+    }
+    const txns = d.transactions || [];
+    document.getElementById('dash-count').textContent = txns.length + ' records';
+    document.getElementById('dash-tbody').innerHTML = txns.length === 0
+      ? '<tr><td colspan="9" style="text-align:center;color:var(--muted)">No transactions yet</td></tr>'
+      : txns.map(t => `<tr>
+          <td class="mono">#${t.id}</td><td>${t.customer}</td>
+          <td class="mono">${t.qty}</td><td class="mono">₹${t.price.toFixed(2)}</td>
+          <td class="mono">₹${t.total.toLocaleString('en-IN')}</td>
+          <td class="mono">₹${t.paid.toLocaleString('en-IN')}</td>
+          <td class="mono" style="color:${t.balance>0?'var(--danger)':'var(--success)'}">₹${t.balance.toLocaleString('en-IN')}</td>
+          <td class="mono">${t.date}</td>
+          <td><span class="badge ${t.status==='Paid'?'badge-green':t.status==='Partial'?'badge-orange':'badge-red'}">${t.status}</span></td>
+        </tr>`).join('');
+  } catch(e) { console.error(e); }
+}
+loadDashboard();
+</script>
+</body>
+</html>
